@@ -11,8 +11,12 @@
 
 volatile unsigned g_pin_input = 2;
 volatile int g_sensor_input = 42;
+volatile bool g_connected_input = true;
 
 int main() {
-    lweh_example::run_scenario(g_pin_input, g_sensor_input);
-    return (lweh_example::g_logger.last_value == g_sensor_input) ? 0 : 1;
+    lweh_example::run_scenario(g_pin_input, g_sensor_input, g_connected_input);
+    return (lweh_example::g_logger.last_value == g_sensor_input
+            && lweh_example::g_connection_logger.connected == g_connected_input)
+               ? 0
+               : 1;
 }
