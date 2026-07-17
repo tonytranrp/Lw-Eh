@@ -14,7 +14,7 @@ Most C++ event/ECS libraries are general-purpose enough to handle almost any use
 - **Zero external dependencies.** Nothing is ever fetched by the build — no `FetchContent`, no vcpkg/Conan, no Boost.
 - **Header-only.** No separate library to build or link against; `#include` it and go.
 
-Measured incremental footprint on a real ESP32 (Xtensa) build: **824 bytes** for six event types split across both storage policies below — see [Research/PROGRESS.md](Research/PROGRESS.md) for the current number and how it's measured (this number moves as the reference scenario gains event types, so treat it as a snapshot, not a promise; it has climbed three times recently — 471 → 564 → 822 → 824 — not from Lw-Eh's own code growing, but from fixing the *measurement* to isolate Lw-Eh's real cost from the platform's boot-up floor, plus a couple of bytes of UART boot-confirmation logging landing symmetrically on both sides of the diff).
+Measured incremental footprint on a real ESP32 (Xtensa) build: **824 bytes** for six event types split across both storage policies below — see [Research/PROGRESS.md](Research/PROGRESS.md) for the current number and how it's measured (this number moves as the reference scenario gains event types, so treat it as a snapshot, not a promise; it has climbed three times recently — 471 → 564 → 822 → 824 — not from Lw-Eh's own code growing, but from fixing the *measurement* to isolate Lw-Eh's real cost from the platform's boot-up floor, plus a couple of bytes of UART boot-confirmation logging landing symmetrically on both sides of the diff). Size aside, this isn't just a static measurement: the example has been flashed to and run on a real ESP32 board, both storage policies dispatching real events end-to-end, not merely cross-compiled and sized.
 
 The reasoning behind every one of these choices — the exact compiler/linker flags, the delegate's binary layout, the reentrancy-safety analysis behind each storage policy, prior-art comparisons against EnTT/ETL/the Linux kernel — is written up in [Research/research.md](Research/research.md) and [Research/ARCHITECTURE.md](Research/ARCHITECTURE.md).
 
@@ -89,7 +89,7 @@ void setup() {
 }
 ```
 
-See [`examples/esp32_minimal/scenario.hpp`](examples/esp32_minimal/scenario.hpp) for a complete version of both, cross-compiled and measured on real ESP32 hardware.
+See [`examples/esp32_minimal/scenario.hpp`](examples/esp32_minimal/scenario.hpp) for a complete version of both, cross-compiled, measured, and confirmed executing correctly on real ESP32 hardware — not just linked and sized, actually booted and run (see [Research/PROGRESS.md](Research/PROGRESS.md) for how).
 
 ## Integration
 
