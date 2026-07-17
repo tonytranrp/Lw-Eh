@@ -16,7 +16,50 @@ struct intrusive_link {
     intrusive_link* next = nullptr;
     virtual void invoke_erased(const void* event) = 0;
 
+    // Copying or moving a node while it's linked is a real, silent
+    // correctness hazard, empirically confirmed (Research/PROGRESS.md):
+    // copy-assigning an unattached node onto an already-linked one compiles
+    // cleanly and overwrites the linked object's own state in place, so
+    // dispatch()'ing the signal it's still attached to silently invokes
+    // what looks like a listener that was never attach()'d at all.
+    // intrusive_node<Event>'s own doc comment (one layer up,
+    // intrusive_signal.hpp) already cites Boost.Intrusive's hooks as this
+    // design's precedent, but Boost's actual hooks (verified against real
+    // source, not just documentation) do NOT delete copy/move -- they leave
+    // both permissive specifically so hook-derived types stay usable inside
+    // STL containers, a concern that doesn't apply here (Lw-Eh never uses
+    // std::vector or any other STL container, by design). Deleting all four
+    // is the correct fix for this library specifically, confirmed against
+    // real prior art: no examined intrusive-list implementation (Boost,
+    // ETL, the Linux kernel's list_head) actually solves node relocation via
+    // move-constructor syntax -- Boost's own answer is a separately-named,
+    // explicitly-invoked swap_nodes(), not an implicit move, and for good
+    // reason: a move constructor only ever sees the two node objects being
+    // moved between, never the intrusive_core/intrusive_signal that owns
+    // the source, so it structurally cannot locate the source's predecessor
+    // to repoint it without either an extra prev pointer (doubling this
+    // library's deliberately-one-pointer-per-node cost) or a container
+    // reference no move constructor can express. Zero size/codegen cost:
+    // nothing anywhere in this repo currently copies or moves an
+    // intrusive_node-derived type (confirmed by grep), so no copy/move code
+    // was ever being emitted for these types before this change either.
+    intrusive_link(const intrusive_link&) = delete;
+    intrusive_link& operator=(const intrusive_link&) = delete;
+    intrusive_link(intrusive_link&&) = delete;
+    intrusive_link& operator=(intrusive_link&&) = delete;
+
 protected:
+    // Explicit now, not implicit: the four deletions above are themselves
+    // user-declared special members, which (per the standard's "no
+    // user-declared constructor" rule for the implicit default constructor)
+    // would otherwise silently make this type, and therefore every derived
+    // intrusive_node<Event>, non-default-constructible -- breaking every
+    // existing `SomeListener node;` declaration in this repo. Confirmed via
+    // a real compile attempt before landing this: without this line, the
+    // existing test suite and examples fail to compile; with it, they don't
+    // (and this constructor is already non-trivial regardless, because of
+    // the virtual function above, so adding it back changes nothing else).
+    intrusive_link() = default;
     // Protected AND non-virtual: the access level alone makes deleting
     // through an intrusive_link* from outside this class hierarchy a
     // compile error, not a documented convention nothing has to remember to
