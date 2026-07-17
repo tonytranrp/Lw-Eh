@@ -1,0 +1,16 @@
+{
+  "name": "lweh",
+  "version": "0.1.0",
+  "description": "Light-Weight Event Handler: a from-scratch, zero-dependency, header-only C++ event/signal dispatch library targeting a 1-2KB compiled footprint on embedded targets.",
+  "keywords": ["event", "signal", "dispatch", "observer", "embedded", "esp32", "header-only"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tonytranrp/Lw-Eh.git"
+  },
+  "license": "MIT",
+  "frameworks": ["arduino", "espidf"],
+  "platforms": "*",
+  "build": {
+    "includeDir": "include"
+  }
+}

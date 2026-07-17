@@ -1,0 +1,14 @@
+# Optional manifest for publishing to the ESP Component Registry
+# (https://components.espressif.com) -- a legitimate distribution channel
+# alongside plain git-submodule vendoring (research.md §B3 distribution
+# caveat). Any resulting fetch is initiated by the CONSUMER's own build via
+# idf.py add-dependency, never by Lw-Eh's own CMake -- Lw-Eh's own build
+# never fetches anything (research.md §B1).
+version: "0.1.0"
+description: >
+  Light-Weight Event Handler: a from-scratch, zero-dependency, header-only
+  C++ event/signal dispatch library targeting a 1-2KB compiled footprint on
+  embedded targets.
+url: "https://github.com/tonytranrp/Lw-Eh"
+dependencies:
+  idf: ">=5.0"

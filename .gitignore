@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# CMake build directories (CMakePresets.json binaryDir targets)
+/build/
+CMakeUserPresets.json

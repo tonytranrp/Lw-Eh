@@ -1,0 +1,14 @@
+CompileFlags:
+  Add: [-Iinclude, -Wall, -Wextra]
+
+---
+If:
+  PathMatch: .*\.(cpp|hpp|cc|hh|cxx)$
+CompileFlags:
+  Add: [-std=c++17]
+
+---
+If:
+  PathMatch: .*\.c$
+CompileFlags:
+  Add: [-std=c11]
