@@ -48,6 +48,39 @@ jobs:
           fi
           echo "Clean: no FetchContent/ExternalProject_Add/find_package/find_program/find_library invocations found."
 
+  # The version string is hand-maintained in four separate places (CMakeLists.txt's
+  # project(VERSION ...), config.hpp's LWEH_VERSION_MAJOR/MINOR/PATCH #defines,
+  # library.json, and integrations/esp-idf/idf_component.yml) with zero
+  # generation/single-source-of-truth mechanism tying them together -- deliberately
+  # not unified via configure_file() (Research/PROGRESS.md): that would break the
+  # README's own "just copy include/lweh/ into your project" plain-vendoring path,
+  # since a hand-copied config.hpp would never go through CMake's configure step.
+  # Nothing has ever bumped the version yet (still 0.1.0 everywhere since Phase 0),
+  # so this hasn't actually drifted -- but nothing currently stops it from drifting
+  # the first time it does. Cheap, permanent insurance for that day, matching
+  # hermeticity-lint's own "cheap grep gate protecting an invariant" pattern.
+  version-consistency-lint:
+    name: Version consistency (CMakeLists.txt / config.hpp / library.json / idf_component.yml)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare the four hand-maintained version strings
+        run: |
+          set -e
+          CMAKE_VER=$(grep -oP 'project\(LwEh VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+          CONFIG_VER="$(grep -oP '#define LWEH_VERSION_MAJOR \K[0-9]+' include/lweh/config.hpp).$(grep -oP '#define LWEH_VERSION_MINOR \K[0-9]+' include/lweh/config.hpp).$(grep -oP '#define LWEH_VERSION_PATCH \K[0-9]+' include/lweh/config.hpp)"
+          LIBJSON_VER=$(grep -oP '"version":\s*"\K[0-9]+\.[0-9]+\.[0-9]+' library.json)
+          IDFYML_VER=$(grep -oP '^version:\s*"\K[0-9]+\.[0-9]+\.[0-9]+' integrations/esp-idf/idf_component.yml)
+          echo "CMakeLists.txt:    $CMAKE_VER"
+          echo "config.hpp:        $CONFIG_VER"
+          echo "library.json:      $LIBJSON_VER"
+          echo "idf_component.yml: $IDFYML_VER"
+          if [ "$CMAKE_VER" != "$CONFIG_VER" ] || [ "$CMAKE_VER" != "$LIBJSON_VER" ] || [ "$CMAKE_VER" != "$IDFYML_VER" ]; then
+            echo "::error::Version strings have drifted apart -- CMakeLists.txt=$CMAKE_VER config.hpp=$CONFIG_VER library.json=$LIBJSON_VER idf_component.yml=$IDFYML_VER. Update whichever is stale so all four match."
+            exit 1
+          fi
+          echo "Clean: all four locations agree on $CMAKE_VER."
+
   # Host correctness suite (research.md §B9/§A9's actual behavioral
   # contracts, not size) under host-debug, host-asan (firing 21), and
   # host-gcc (firing 29) -- keeps all three permanently exercised on every
