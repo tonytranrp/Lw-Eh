@@ -67,5 +67,29 @@ int main() {
         LWEH_EXPECT(!s.detach<&listener::on_dummy>(&l));
     }
 
+    // The same Fn attached twice (allowed -- no double-attach guard) occupies
+    // two independent slots, both fire, and a single detach() call removes
+    // exactly one of them, not both -- documented in signal.hpp's own
+    // detach() comment; this pins the exact behavior down as tested, not
+    // just described.
+    {
+        free_hits = 0;
+        lweh::signal<dummy_event, 4> s;
+        LWEH_EXPECT(s.attach<&on_dummy_free>());
+        LWEH_EXPECT(s.attach<&on_dummy_free>());
+
+        s.publish(dummy_event{1});
+        LWEH_EXPECT_EQ(free_hits, 2); // both copies fired
+
+        LWEH_EXPECT(s.detach<&on_dummy_free>()); // removes exactly one
+
+        free_hits = 0;
+        s.publish(dummy_event{1});
+        LWEH_EXPECT_EQ(free_hits, 1); // the other copy still fires
+
+        LWEH_EXPECT(s.detach<&on_dummy_free>());  // removes the last one
+        LWEH_EXPECT(!s.detach<&on_dummy_free>()); // none left
+    }
+
     return lweh_test::finish();
 }

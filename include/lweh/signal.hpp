@@ -88,6 +88,18 @@ public:
 
     // Detach a free function previously attached with the same Fn. Returns
     // false (no-op) if it isn't currently attached.
+    //
+    // Removes exactly ONE matching slot per call, not every match: a direct,
+    // empirically-confirmed (Research/PROGRESS.md) consequence of attach()'s
+    // own documented no-double-attach-guard behavior above -- since attach()
+    // never rejects a duplicate registration, the same Fn can legitimately
+    // occupy more than one slot at once, and each is an independent slot a
+    // separate detach() call removes one at a time (first match in slot
+    // order), same as calling attach() twice then detach() once would leave
+    // one copy still firing. Not a limitation to work around: there's no
+    // real use case in a zero-allocation, no-registry design for a "detach
+    // every matching instance" call that couldn't already be expressed as
+    // "call detach() in a loop until it returns false."
     template <auto Fn>
     bool detach() {
         slot_t target;
@@ -96,7 +108,8 @@ public:
     }
 
     // Detach a member function previously attached with the same MemFn and
-    // instance. Returns false (no-op) if it isn't currently attached.
+    // instance. Returns false (no-op) if it isn't currently attached. Same
+    // one-slot-per-call contract as the free-function overload above.
     template <auto MemFn, typename T>
     bool detach(T* instance) {
         slot_t target;
