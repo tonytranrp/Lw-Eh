@@ -20,9 +20,20 @@ target_compile_options(lw_eh_size_flags INTERFACE
     $<${LWEH_IS_GCC_LIKE}:-fno-threadsafe-statics -fno-use-cxa-atexit>
     $<${LWEH_IS_GCC_LIKE}:-fomit-frame-pointer -fmerge-all-constants -fno-stack-protector>
     $<${LWEH_IS_GCC_LIKE}:-fvisibility=hidden -fvisibility-inlines-hidden -fno-ident>
+    $<${LWEH_IS_GCC_LIKE}:-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion>
     $<${LWEH_IS_GNU}:-flto -flto-partition=none>
     $<${LWEH_IS_CLANG}:-flto=full>
 )
+# Warnings only, deliberately no -Werror: this set is verified clean right now
+# (host Clang + real xtensa-esp32-elf-g++ 8.4.0, both zero warnings across
+# every library header and every test/example file, Research/PROGRESS.md),
+# but -Werror would make every future build's success depend on avr-gcc/
+# arm-none-eabi-gcc versions this project has never been able to test against
+# (research.md: those toolchains aren't installed on this machine) -- a
+# harmless new warning on a toolchain nobody here can check would silently
+# turn into a hard build failure. Non-fatal warnings cost nothing and still
+# surface a regression immediately; revisit -Werror once those toolchains are
+# actually available to verify against.
 
 target_link_options(lw_eh_size_flags INTERFACE
     $<${LWEH_IS_GCC_LIKE}:-Wl,--gc-sections>
