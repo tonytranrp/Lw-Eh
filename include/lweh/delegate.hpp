@@ -54,16 +54,60 @@ public:
     delegate() = default;
 
     // Bind a free function: delegate<Ret(Args...)>::bind<&some_function>().
+    //
+    // The is_invocable_r_v check below and the is_member_pointer_v check
+    // inside free_function_stub (above) are deliberately BOTH kept, not one
+    // in place of the other -- they catch different, complementary mistakes.
+    // is_invocable_r_v rejects wrong arity/parameter types early, right here
+    // at the call site, before free_function_stub<Fn> is even instantiated.
+    // But it uses the same INVOKE semantics std::invoke does, so it has the
+    // identical loophole this file's own std::invoke-avoidance comment
+    // (see free_function_stub) warns about: a member-function pointer whose
+    // shape happens to match "call this with Args...[0] as the implicit
+    // object" (e.g. binding a zero-arg method of Event itself to a
+    // delegate<void(const Event&)>) satisfies is_invocable_r_v and slips
+    // past this check undetected. free_function_stub's unconditional
+    // is_member_pointer_v assert is the only complete backstop for that
+    // case -- it's a pure type check, immune to the invocability loophole --
+    // which is exactly why it stays, unconditionally, even with this added.
+    // (Investigated via 2 parallel subagents before implementing: C++20
+    // `requires` was considered and rejected -- confirmed to actually make
+    // the common-mistake diagnostic WORSE, not better, since a failed
+    // requires-clause's generic "constraints not satisfied" message
+    // pre-empts the friendlier static_assert text below via SFINAE, and it
+    // would have added permanent C++17/C++20 dual-path complexity for a
+    // benefit a plain static_assert already gets on the guaranteed C++17
+    // floor. Research/PROGRESS.md has the full writeup.)
     template <auto Fn>
     void bind() {
+        static_assert(std::is_invocable_r_v<Ret, decltype(Fn), Args...>,
+                      "bind<Fn>(): Fn is not callable as Ret(Args...).");
         obj_ = nullptr;
         stub_ = &free_function_stub<Fn>;
     }
 
     // Bind a member function on a specific instance:
     // delegate<Ret(Args...)>::bind<&Class::method>(&instance).
+    //
+    // Unlike the free-function overload above, MemFn had NO compile-time
+    // signature check at all before this: a wrong arity/type failed deep
+    // inside member_function_stub's body with a raw template-instantiation
+    // error. This closes that gap for the common case. Known, narrow,
+    // honestly-documented limitation (not engineered around, matching how
+    // delegate's own equality operator documents its ICF-folding caveat
+    // rather than pretending it doesn't exist): a plain FREE function
+    // shaped exactly like Ret(T*, Args...) -- taking T* as its first
+    // parameter -- satisfies is_invocable_r_v here too, via the same
+    // INVOKE-based loophole described above, even though it isn't actually
+    // a pointer-to-member and member_function_stub's `(p->*MemFn)(args...)`
+    // would reject it outright once instantiated. Considered too narrow and
+    // deliberate a mistake (binding a free function through the member-
+    // function overload, with a first parameter that happens to match the
+    // instance type exactly) to be worth a second guard for.
     template <auto MemFn, typename T>
     void bind(T* instance) {
+        static_assert(std::is_invocable_r_v<Ret, decltype(MemFn), T*, Args...>,
+                      "bind<MemFn>(instance): MemFn is not callable as Ret(Args...) on *instance.");
         obj_ = instance;
         stub_ = &member_function_stub<MemFn, T>;
     }

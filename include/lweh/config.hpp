@@ -8,12 +8,6 @@
 #define LWEH_VERSION_MINOR 1
 #define LWEH_VERSION_PATCH 0
 
-#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
-#define LWEH_HAS_CONCEPTS 1
-#else
-#define LWEH_HAS_CONCEPTS 0
-#endif
-
 namespace lweh {
 
 // Default listener capacity for signal<Event, MaxListeners> when the caller
