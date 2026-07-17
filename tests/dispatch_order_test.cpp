@@ -37,6 +37,10 @@ void hook_c(const dummy_event&) {
     g_order_target->record('C');
 }
 
+void hook_d(const dummy_event&) {
+    g_order_target->record('D');
+}
+
 lweh::signal<dummy_event, 4>* g_self_detach_sig = nullptr;
 recorder* g_self_detach_target = nullptr;
 void self_detaching_hook(const dummy_event&) {
@@ -81,6 +85,34 @@ int main() {
 
         s.publish(dummy_event{1}); // second pass: must not fire again
         LWEH_EXPECT_EQ(r.count, 1);
+    }
+
+    // A freed MIDDLE slot (outside any dispatch -- not the reentrant-
+    // deferral scenario in reentrancy_test.cpp's scenario 3) is reused by
+    // first-fit, and the new listener's dispatch position reflects the slot
+    // it landed in, not attach order. Three slots occupied (A=0, B=1, C=2),
+    // detach the true middle (B -- not first, not last) via a plain
+    // synchronous call, then attach a new listener: it must land in slot 1
+    // (B's old slot), so dispatch order becomes A, D, C -- not A, C, D, which
+    // would only happen if D were appended after C instead of reusing B's
+    // freed slot.
+    {
+        recorder r;
+        g_order_target = &r;
+
+        lweh::signal<dummy_event, 4> s;
+        s.attach<&hook_a>(); // slot 0
+        s.attach<&hook_b>(); // slot 1
+        s.attach<&hook_c>(); // slot 2
+
+        LWEH_EXPECT(s.detach<&hook_b>()); // frees slot 1 -- true middle
+        LWEH_EXPECT(s.attach<&hook_d>()); // first-fit must land D in slot 1
+
+        s.publish(dummy_event{1});
+        LWEH_EXPECT_EQ(r.count, 3);
+        LWEH_EXPECT_EQ(r.trace[0], 'A');
+        LWEH_EXPECT_EQ(r.trace[1], 'D'); // reused slot 1 -- fires in B's old position
+        LWEH_EXPECT_EQ(r.trace[2], 'C');
     }
 
     return lweh_test::finish();
