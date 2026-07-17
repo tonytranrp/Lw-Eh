@@ -25,6 +25,21 @@ class intrusive_signal;
 // something engineered around here (research.md §A7's own stated
 // tradeoff: "listener lifetime becomes the caller's responsibility").
 //
+// One specific consequence of the above is severe enough to call out on
+// its own, empirically confirmed (Research/PROGRESS.md), not just implied
+// by "malformed list": attaching the SAME node to the SAME signal twice
+// makes that node's own next pointer reference itself, and publish()
+// afterward loops FOREVER — a genuine hang, not merely corrupted or lost
+// data the way the cross-signal case is. This isn't a gap this library
+// engineers around either, for the same reason the cases above aren't:
+// detecting it cheaply would need real per-node state (an "already
+// linked" flag or sentinel) this design deliberately doesn't carry, to
+// keep the per-listener cost to exactly one pointer (detail::intrusive_
+// core's own stated goal) — Boost.Intrusive's own safe_link/auto_unlink
+// modes, which DO detect this, pay for exactly that extra state, and
+// Lw-Eh's default (matching Boost's own default, non-safe) mode doesn't
+// carry it either. Attach each node to at most one signal at a time.
+//
 // See detail::intrusive_core for the full dispatch-safety contract this
 // type inherits, including one narrow, documented, self-healing reentrancy
 // caveat found by adversarial stress-testing before this was written.
