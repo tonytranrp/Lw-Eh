@@ -36,7 +36,7 @@ jobs:
     name: Hermeticity lint (no fetched/resolved dependencies)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Grep for forbidden dependency-fetching/resolving CMake commands
         run: |
           set -e
@@ -76,7 +76,7 @@ jobs:
       matrix:
         preset: [host-debug, host-asan, host-gcc]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y ninja-build clang gcc g++
       - name: Toolchain versions
@@ -106,7 +106,7 @@ jobs:
     name: Install + find_package(LwEh) consumption
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y ninja-build clang
       - name: Configure the library (install-only, no tests/examples/size_audit)
