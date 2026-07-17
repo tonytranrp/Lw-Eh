@@ -13,12 +13,15 @@ volatile unsigned g_pin_input = 2;
 volatile int g_sensor_input = 42;
 volatile bool g_connected_input = true;
 volatile unsigned g_battery_input = 50;
+volatile int g_wifi_input = -60;
 
 int main() {
-    lweh_example::run_scenario(g_pin_input, g_sensor_input, g_connected_input, g_battery_input);
+    lweh_example::run_scenario(g_pin_input, g_sensor_input, g_connected_input, g_battery_input,
+                                g_wifi_input);
     return (lweh_example::g_logger.last_value == g_sensor_input
             && lweh_example::g_connection_logger.connected == g_connected_input
-            && lweh_example::g_battery_low == (g_battery_input < 15))
+            && lweh_example::g_battery_low == (g_battery_input < 15)
+            && lweh_example::g_wifi_weak == (g_wifi_input < -80))
                ? 0
                : 1;
 }
