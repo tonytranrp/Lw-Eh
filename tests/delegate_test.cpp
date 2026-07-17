@@ -42,6 +42,16 @@ struct inherits_method {
 
 struct child_of_inherits_method : inherits_method {};
 
+// File-scope, not a local class inside main(): a local class's members lack
+// linkage and aren't reliably usable as a template<auto Fn> NTTP argument
+// across compilers, even where a given host toolchain happens to accept it.
+struct math {
+    int scale(int x, int y) const {
+        return x * y + factor;
+    }
+    int factor = 7;
+};
+
 } // namespace
 
 int main() {
@@ -109,12 +119,7 @@ int main() {
     // Multi-argument, non-void return signature (not just the single-arg/
     // void cases above) to exercise the variadic Args... path generally.
     {
-        struct math {
-            int scale(int x, int y) const {
-                return x * y + factor;
-            }
-            int factor = 7;
-        } m;
+        math m;
         lweh::delegate<int(int, int)> d;
         d.bind<&math::scale>(&m);
         LWEH_EXPECT_EQ(d(3, 4), 19);

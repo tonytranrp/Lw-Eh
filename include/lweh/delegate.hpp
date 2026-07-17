@@ -75,6 +75,27 @@ public:
     explicit operator bool() const {
         return stub_ != nullptr;
     }
+
+    // Equality is "bound to the same target": same instance pointer (or both
+    // null, for free functions) and the same stub. Used by signal<Event,N>
+    // to find a specific listener to detach (Research/ARCHITECTURE.md:
+    // detach<Fn>()/detach<MemFn>(T*) mirror bind's own syntax, matched by
+    // reconstructed value rather than a returned handle).
+    //
+    // Narrow known caveat, not a correctness bug in normal use: under
+    // aggressive identical-code-folding (GCC's -fipa-icf, on by default at
+    // -Os/-O2, or an explicit linker --icf=all), two DIFFERENT member
+    // functions that happen to compile to byte-identical code and are bound
+    // to the SAME instance could fold to the same stub_ address and compare
+    // equal here even though they're conceptually different bindings. This
+    // only matters if delegate equality is later used for something where
+    // that distinction is safety-relevant (it isn't, for detach-by-value).
+    friend bool operator==(const delegate& lhs, const delegate& rhs) {
+        return lhs.obj_ == rhs.obj_ && lhs.stub_ == rhs.stub_;
+    }
+    friend bool operator!=(const delegate& lhs, const delegate& rhs) {
+        return !(lhs == rhs);
+    }
 };
 
 // Permanent, zero-cost regression guard: if a future change accidentally
