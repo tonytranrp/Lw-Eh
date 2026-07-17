@@ -99,6 +99,12 @@ tests/
   multi_event_isolation_test.cpp
 
 examples/
+  CMakeLists.txt                        # add_subdirectory's the four architecture targets below
+  scenario.hpp                          # shared "realistic Lw-Eh usage" scenario, #include'd by every
+                                         # main.cpp below AND size_audit/with_lweh_main.cpp, so the
+                                         # example and the size number can never silently drift apart
+                                         # (moved here from esp32_minimal/ in firing 20 -- not part of
+                                         # the original Phase 0 tree this section otherwise documents)
   esp32_minimal/{CMakeLists.txt,main.cpp,esp32.ld,startup.S}
   riscv32_esp_minimal/{CMakeLists.txt,main.cpp,riscv32.ld,startup.S}
   arm_cortex_m_minimal/{CMakeLists.txt,main.cpp,cortex_m.ld,startup.c}
@@ -107,6 +113,7 @@ examples/
 size_audit/
   CMakeLists.txt                        # size_audit_control + size_audit_with_lweh targets
   control_main.cpp                      # baseline skeleton, never includes lweh
+  with_lweh_main.cpp                    # #includes scenario.hpp -- the with-Lw-Eh half of the diff
   size_report.py                        # size/nm/bloaty-diff/--print-gc-sections orchestration
 ```
 
