@@ -111,7 +111,17 @@ cmake --build --preset host-debug
 ctest --preset host-debug
 ```
 
-This builds and runs the correctness test suite on your host machine — no embedded toolchain needed. `CMakePresets.json` also has presets for cross-compiling the examples to ESP32 (Xtensa and RISC-V), ARM Cortex-M, and AVR (see [`cmake/toolchains/`](cmake/toolchains/)), and a `size-host` preset that drives the size-measurement tooling in [`size_audit/`](size_audit/) described in [Research/research.md](Research/research.md) (§B9).
+This builds and runs the correctness test suite on your host machine — no embedded toolchain needed. `CMakePresets.json` also has presets for cross-compiling the examples to ESP32 (Xtensa and RISC-V), ARM Cortex-M, and AVR (see [`cmake/toolchains/`](cmake/toolchains/)), and a `size-host` preset that drives the size-measurement tooling in [`size_audit/`](size_audit/) described in [Research/research.md](Research/research.md) (§B9) as a host-only proxy — no cross-toolchain needed, but the number it reports includes host CRT overhead, not the real embedded footprint.
+
+For a real ESP32 measurement, use `esp32-xtensa-size`, not plain `esp32-xtensa`: the latter is sized for just building the example (`LWEH_BUILD_SIZE_AUDIT` defaults off), so `size_audit/`'s control target silently isn't built at all under it — a real trap documented in [Research/PROGRESS.md](Research/PROGRESS.md) after it cost more than one measurement being retaken.
+
+```sh
+cmake --preset esp32-xtensa-size
+cmake --build --preset esp32-xtensa-size
+python size_audit/size_report.py --build-dir build/esp32-xtensa-size \
+    --prefix xtensa-esp32-elf- --with-target lw_eh_example_esp32_minimal \
+    --control-target lw_eh_size_audit_control_esp32
+```
 
 A `host-asan` preset (`cmake --preset host-asan && cmake --build --preset host-asan && ctest --preset host-asan`) runs the same suite compiled with `-fsanitize=address,undefined` — the reentrancy/dispatch-safety contracts documented in [`signal.hpp`](include/lweh/signal.hpp) and [`intrusive_signal.hpp`](include/lweh/intrusive_signal.hpp) were originally validated this way, and this preset keeps that coverage standing rather than one-off. Sanitizers are host-only by design: they're never applied to the flags examples/ cross-compile with, since bare-metal embedded targets have no sanitizer runtime available.
 
