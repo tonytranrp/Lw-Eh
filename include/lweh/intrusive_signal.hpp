@@ -39,6 +39,18 @@ public:
 
 protected:
     intrusive_node() = default;
+    // Protected AND non-virtual, matching detail::intrusive_link's own
+    // destructor (detail/intrusive_core.hpp) one layer down. The access
+    // level alone is what makes this safe without vtable-destructor
+    // overhead: `delete` through an `intrusive_node<Event>*` base pointer
+    // from outside this class hierarchy is a COMPILE ERROR (protected
+    // members aren't callable from outside), not a documented convention
+    // callers have to trust themselves to follow -- confirmed empirically
+    // (firing 32): attempting exactly that fails with "calling a protected
+    // destructor of class ...". Only the caller's own most-derived listener
+    // type can ever be deleted, which is always safe without a virtual
+    // destructor since destruction then starts from the correct, most-
+    // derived type by construction, not by convention.
     ~intrusive_node() = default;
 
 private:

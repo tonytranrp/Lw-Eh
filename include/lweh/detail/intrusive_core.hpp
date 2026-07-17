@@ -17,9 +17,12 @@ struct intrusive_link {
     virtual void invoke_erased(const void* event) = 0;
 
 protected:
-    // Non-virtual on purpose: nothing ever deletes through an
-    // intrusive_link*, only through the most-derived listener type the
-    // caller owns.
+    // Protected AND non-virtual: the access level alone makes deleting
+    // through an intrusive_link* from outside this class hierarchy a
+    // compile error, not a documented convention nothing has to remember to
+    // follow. intrusive_node<Event> (one layer up, intrusive_signal.hpp)
+    // repeats this exact pattern for the listener types callers actually
+    // hold, with the full reasoning and an empirical confirmation.
     ~intrusive_link() = default;
 };
 
