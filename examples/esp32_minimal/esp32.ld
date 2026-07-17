@@ -40,7 +40,22 @@ ENTRY(_start)
 SECTIONS
 {
     .text : { *(.literal*) *(.text*) } > IRAM0
-    .rodata : { *(.rodata*) } > IRAM0
+
+    /* .rodata lives in DRAM0, not IRAM0 -- confirmed via real hardware
+       (firing 42): a LoadStoreError at excvaddr resolving into this
+       section's old IRAM0 placement, faulting on a byte-load
+       (l8ui) of a string literal inside uart0_tx_string's char-by-char
+       read loop. Same root cause as e438462's original .bss/.data
+       finding (IRAM0 is the word-only-accessible instruction bus) --
+       just a byte-accessed constant this time instead of a byte-accessed
+       global variable. Not everything in .rodata is byte-accessed (the
+       vtables here are read via word-sized l32i and were never a
+       problem in IRAM0), but string literals are, and the linker has no
+       way to split .rodata by access width -- DRAM0 supports both, so
+       moving the whole section there is the simple, general, always-
+       correct fix rather than trying to cherry-pick which rodata
+       symbols are "safe" to leave behind. */
+    .rodata : { *(.rodata*) } > DRAM0
 
     /* Real LMA (flash/IRAM0, where the loader puts the bytes) vs. VMA
        (DRAM0, where the code actually reads/writes them) split -- startup.S
