@@ -11,6 +11,13 @@ int add_one(int x) {
     return x + 1;
 }
 
+int double_it(int x) {
+    return x * 2;
+}
+
+void ignore_int(int) {
+}
+
 struct counter {
     int value = 0;
     void bump(int by) {
@@ -123,6 +130,63 @@ int main() {
         lweh::delegate<int(int, int)> d;
         d.bind<&math::scale>(&m);
         LWEH_EXPECT_EQ(d(3, 4), 19);
+    }
+
+    // operator==/!= (research.md's "detach<Fn>()/detach<MemFn>(T*) match by
+    // reconstructed value" design depends on this; only ever exercised
+    // indirectly through signal<>'s attach/detach tests before, never
+    // pinned down directly at the delegate level).
+    {
+        // Two separately-bound delegates targeting the same free function compare equal.
+        lweh::delegate<int(int)> d1;
+        lweh::delegate<int(int)> d2;
+        d1.bind<&add_one>();
+        d2.bind<&add_one>();
+        LWEH_EXPECT(d1 == d2);
+        LWEH_EXPECT(!(d1 != d2));
+    }
+    {
+        // Different free functions (same signature) compare unequal.
+        lweh::delegate<int(int)> d_add;
+        lweh::delegate<int(int)> d_double;
+        d_add.bind<&add_one>();
+        d_double.bind<&double_it>();
+        LWEH_EXPECT(d_add != d_double);
+        LWEH_EXPECT(!(d_add == d_double));
+    }
+    {
+        counter c;
+        // Same member function, same instance: equal.
+        lweh::delegate<void(int)> d1;
+        lweh::delegate<void(int)> d2;
+        d1.bind<&counter::bump>(&c);
+        d2.bind<&counter::bump>(&c);
+        LWEH_EXPECT(d1 == d2);
+
+        // Same member function, different instance: unequal (obj_ differs).
+        counter other;
+        lweh::delegate<void(int)> d3;
+        d3.bind<&counter::bump>(&other);
+        LWEH_EXPECT(d1 != d3);
+    }
+    {
+        // Free-function-bound vs. member-function-bound delegate: unequal
+        // (different stub_, and obj_ differs too since free-function bind
+        // always sets obj_ = nullptr).
+        counter c;
+        lweh::delegate<void(int)> free_bound;
+        lweh::delegate<void(int)> member_bound;
+        free_bound.bind<&ignore_int>();
+        member_bound.bind<&counter::bump>(&c);
+        LWEH_EXPECT(free_bound != member_bound);
+    }
+    {
+        // Two default-constructed (unbound) delegates compare equal to each
+        // other -- both obj_ and stub_ are nullptr on both sides, which is
+        // the correct, consistent "nothing equals nothing" outcome, not a bug.
+        lweh::delegate<void(int)> u1;
+        lweh::delegate<void(int)> u2;
+        LWEH_EXPECT(u1 == u2);
     }
 
     return lweh_test::finish();
