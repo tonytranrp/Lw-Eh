@@ -12,13 +12,30 @@ Usage (host-representative, always available -- no cross-toolchain needed):
     cmake --build --preset size-host
     python size_audit/size_report.py --build-dir build/size-host
 
-Once a real embedded cross-toolchain is available (see the environment note
-in Research/PROGRESS.md -- as of this writing this dev machine has none),
-point --with-target at the real embedded example instead:
-    cmake --preset esp32-xtensa -DLWEH_BUILD_SIZE_AUDIT=ON
-    cmake --build --preset esp32-xtensa
-    python size_audit/size_report.py --build-dir build/esp32-xtensa \\
-        --prefix xtensa-esp32-elf- --with-target lw_eh_example_esp32_minimal
+Once a real embedded cross-toolchain is available (this dev machine has a
+real xtensa-esp32-elf-gcc via a PlatformIO install -- see Research/PROGRESS.md
+and durable memory for exactly where and how it's put on PATH), point
+--with-target at the real embedded example instead. Use the esp32-xtensa-size
+preset, not plain esp32-xtensa: the latter sets LWEH_BUILD_SIZE_AUDIT=OFF, so
+size_audit/ (and this script's --control-target) silently isn't even built
+unless the flag is turned on some other way -- a real reproducibility gap a
+prior firing hit after a fresh reconfigure reset an invisibly-persisted cache
+override (Research/PROGRESS.md).
+    cmake --preset esp32-xtensa-size
+    cmake --build --preset esp32-xtensa-size
+    python size_audit/size_report.py --build-dir build/esp32-xtensa-size \\
+        --prefix xtensa-esp32-elf- --with-target lw_eh_example_esp32_minimal \\
+        --control-target lw_eh_size_audit_control_esp32
+
+--control-target must be overridden to lw_eh_size_audit_control_esp32 here
+(size_audit/CMakeLists.txt's own comment documents why): the default
+lw_eh_size_audit_control has no custom startup.S/esp32.ld boot path, so it
+isn't "otherwise identical" to lw_eh_example_esp32_minimal the way research.md
+Section B6 requires -- diffing against it silently produces a wrong number
+(898 bytes, not the real, many-times-reconfirmed 888) rather than an error.
+Confirmed by actually running this example verbatim, not just reasoning about
+it: this exact command block used to omit --control-target and would have
+handed anyone who copy-pasted it a wrong figure with no warning.
 """
 
 import argparse
