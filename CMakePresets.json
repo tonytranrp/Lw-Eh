@@ -89,6 +89,19 @@
         "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_C_COMPILER": "clang"
       }
+    },
+    {
+      "name": "host-gcc",
+      "displayName": "Host (GCC)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/host-gcc",
+      "cacheVariables": {
+        "LWEH_BUILD_TESTS": "ON",
+        "LWEH_BUILD_EXAMPLES": "OFF",
+        "LWEH_BUILD_SIZE_AUDIT": "OFF",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_C_COMPILER": "gcc"
+      }
     }
   ],
   "buildPresets": [
@@ -98,10 +111,12 @@
     { "name": "cortex-m", "configurePreset": "cortex-m" },
     { "name": "avr", "configurePreset": "avr" },
     { "name": "size-host", "configurePreset": "size-host" },
-    { "name": "host-asan", "configurePreset": "host-asan" }
+    { "name": "host-asan", "configurePreset": "host-asan" },
+    { "name": "host-gcc", "configurePreset": "host-gcc" }
   ],
   "testPresets": [
     { "name": "host-debug", "configurePreset": "host-debug", "output": { "outputOnFailure": true } },
-    { "name": "host-asan", "configurePreset": "host-asan", "output": { "outputOnFailure": true } }
+    { "name": "host-asan", "configurePreset": "host-asan", "output": { "outputOnFailure": true } },
+    { "name": "host-gcc", "configurePreset": "host-gcc", "output": { "outputOnFailure": true } }
   ]
 }

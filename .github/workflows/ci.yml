@@ -44,9 +44,19 @@ jobs:
           echo "Clean: no FetchContent/ExternalProject_Add/find_package/find_program/find_library invocations found."
 
   # Host correctness suite (research.md §B9/§A9's actual behavioral
-  # contracts, not size) under both the plain preset and the ASan+UBSan
-  # preset added in firing 21 -- keeps both permanently exercised on every
+  # contracts, not size) under host-debug, host-asan (firing 21), and
+  # host-gcc (firing 29) -- keeps all three permanently exercised on every
   # push/PR, not just when a firing happens to remember to run them locally.
+  # host-gcc matters specifically because it CAN'T be verified locally on
+  # this project's own dev machine at all: that machine's "g++" is actually
+  # an llvm-mingw Clang alias (confirmed via `g++ --version` printing "clang
+  # version..."), not real GNU GCC, so CI is the only place the GNU-specific
+  # branches in cmake/LwEhAggressiveFlags.cmake (-Os vs -Oz, -flto-
+  # partition=none, --relax scoped to GNU only) have ever actually been
+  # compiled with a genuine GNU compiler -- research.md §B7 frames GCC, not
+  # Clang, as the real production toolchain family for the actual embedded
+  # target (xtensa-esp32-elf-gcc), making this a real correctness gap, not
+  # just belt-and-suspenders.
   # Deliberately does NOT attempt the Xtensa/RISC-V/ARM/AVR cross-compile
   # presets here: those need real embedded cross-toolchains this repo has
   # never fetched (and, per the zero-dependency rule this very lint job
@@ -59,13 +69,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: [host-debug, host-asan]
+        preset: [host-debug, host-asan, host-gcc]
     steps:
       - uses: actions/checkout@v4
       - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang gcc g++
       - name: Toolchain versions
-        run: cmake --version && ninja --version && clang++ --version
+        run: cmake --version && ninja --version && clang++ --version && g++ --version
       - name: Configure
         run: cmake --preset ${{ matrix.preset }}
       - name: Build
