@@ -89,7 +89,7 @@ void setup() {
 }
 ```
 
-See [`examples/esp32_minimal/scenario.hpp`](examples/esp32_minimal/scenario.hpp) for a complete version of both, cross-compiled, measured, and confirmed executing correctly on real ESP32 hardware — not just linked and sized, actually booted and run (see [Research/PROGRESS.md](Research/PROGRESS.md) for how).
+See [`examples/esp32_minimal/scenario.hpp`](examples/esp32_minimal/scenario.hpp) for a complete version of both, cross-compiled, measured, and confirmed executing correctly on real ESP32 hardware — not just linked and sized, actually booted and run (see [Research/PROGRESS.md](Research/PROGRESS.md) for how). If you have a real board on hand, [`examples/esp32_minimal/flash.py`](examples/esp32_minimal/flash.py) is the tested, reusable script that builds and flashes this exact example and prints its boot log (`python examples/esp32_minimal/flash.py --port COM5 --observe-seconds 8`, after `cmake --build --preset esp32-xtensa`) — it's the same recipe every real-hardware finding above was actually verified with, not a separate/unverified convenience wrapper.
 
 ## Integration
 
