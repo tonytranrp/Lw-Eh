@@ -15,11 +15,15 @@
      - .bss zeroing: 7 of scenario.hpp's 9 globals (both intrusive_signal<>
        instances, all four signal<Event,4> instances, sensor_logger) are
        all-zero and land here; nothing more than zero-fill is required.
-     - .data copy: the 2 intrusive_node<Event>-derived listener globals
-       (connection_logger, motion_logger) land here -- their vtable
-       pointers are link-time-resolved constants already baked into the
-       stored bytes, not something a constructor computes at runtime, so a
-       plain memory copy from load address to run address is sufficient.
+     - .data: the 2 intrusive_node<Event>-derived listener globals
+       (connection_logger, motion_logger) land here with link-time-resolved
+       vtable-pointer bytes already baked in -- no runtime copy needed or
+       wanted; see esp32.ld's comment on why a load-address copy loop was
+       tried here, found actively wrong on real hardware (firing 43:
+       esptool's elf2image doesn't implement AT>-style LMA/VMA splits, so
+       there was never anything valid at the "load address" to copy from),
+       and removed. The loader places .data's real bytes directly at their
+       run address; nothing in startup.S needs to touch it.
      - .ctors walk: defensive, currently always a zero-iteration no-op
        (matches the finding above) -- see esp32.ld's own comment on why
        this stays in despite doing nothing today. */
@@ -44,19 +48,11 @@ _start:
 .Lbss_check:
     bltu    a2, a3, .Lbss_loop
 
-    /* Copy .data from its load address (IRAM0, where the loader placed the
-       bytes) to its run address (DRAM0, where the code reads/writes it) */
-    movi    a2, _data_load_start
-    movi    a3, _data_start
-    movi    a4, _data_end
-    j       .Ldata_check
-.Ldata_loop:
-    l32i    a5, a2, 0
-    s32i    a5, a3, 0
-    addi    a2, a2, 4
-    addi    a3, a3, 4
-.Ldata_check:
-    bltu    a3, a4, .Ldata_loop
+    /* .data needs no runtime copy on this boot path -- see esp32.ld's
+       comment for why (esptool's elf2image places section content
+       directly at its run address; there is no separate "load address"
+       to copy from here the way there would be on a typical execute-
+       in-place-from-flash target). */
 
     /* Walk .ctors (not .init_array -- this toolchain rejects
        -fuse-init-array outright, confirmed directly; see esp32.ld) */

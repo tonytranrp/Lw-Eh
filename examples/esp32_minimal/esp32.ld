@@ -57,18 +57,26 @@ SECTIONS
        symbols are "safe" to leave behind. */
     .rodata : { *(.rodata*) } > DRAM0
 
-    /* Real LMA (flash/IRAM0, where the loader puts the bytes) vs. VMA
-       (DRAM0, where the code actually reads/writes them) split -- startup.S
-       copies _data_load_start..+len to _data_start at boot. Verified via
-       readelf -l against this exact layout: LOAD segment 2 shows
-       VirtAddr=0x3ffb0000 PhysAddr=<end of .rodata>, FileSiz < MemSiz,
-       the textbook signature of a correct LMA!=VMA + trailing-.bss split. */
+    /* No AT>IRAM0 / LMA-vs-VMA split here, and deliberately so -- an
+       earlier version of this script tried the textbook embedded "load
+       address in flash, copy to a different run address in RAM at boot"
+       pattern for .data, with a matching copy loop in startup.S. Real
+       hardware + disassembly (firing 43) proved that pattern is actively
+       wrong on THIS boot path: esptool's elf2image builds image segments
+       from each section's VMA alone (confirmed via image_info on the
+       actual built .bin: .rodata+.data were merged into one DRAM0-VMA
+       segment; nothing was ever written to .data's supposed IRAM0 load
+       address), so the bootloader's own segment loader already places
+       .data's real, correct, pre-computed bytes directly at its DRAM0
+       run address -- copying from the "load address" at runtime meant
+       reading whatever uninitialized garbage happened to be sitting in
+       IRAM0, corrupting every global with non-zero initial content (a
+       real, decoded `Fatal exception (28): LoadProhibited` dereferencing
+       a listener global's now-garbage vtable pointer). Plain `> DRAM0`,
+       no copy loop needed -- the loader IS the copy. */
     .data : {
-        _data_start = .;
         *(.data*)
-        _data_end = .;
-    } > DRAM0 AT> IRAM0
-    _data_load_start = LOADADDR(.data);
+    } > DRAM0
 
     .bss : {
         _bss_start = .;
