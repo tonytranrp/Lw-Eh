@@ -18,6 +18,32 @@ if(TARGET lw_eh_example_esp32_minimal)
     # (Research/ARCHITECTURE.md), for when a real cross-toolchain is
     # available (see Research/PROGRESS.md environment note).
     add_custom_target(lw_eh_size_audit_with_lweh_embedded DEPENDS lw_eh_example_esp32_minimal)
+
+    # Matching ESP32 control baseline: same startup.S/esp32.ld boot path as
+    # lw_eh_example_esp32_minimal, so the two are "otherwise identical
+    # builds" per research.md B9 -- see control_esp32_main.cpp. Pass
+    # --control-target lw_eh_size_audit_control_esp32 to size_report.py
+    # when measuring against lw_eh_example_esp32_minimal (the default
+    # lw_eh_size_audit_control has no custom boot path and understates
+    # Lw-Eh's true incremental cost once the with-lweh side has one).
+    #
+    # enable_language(ASM) again here: examples/CMakeLists.txt already
+    # called it, but only within its own directory scope (a sibling of
+    # size_audit/ under the root CMakeLists.txt, not an ancestor) --
+    # confirmed the hard way, a fresh esp32-xtensa configure with this
+    # block missing failed with "required internal CMake variable not set:
+    # CMAKE_ASM_COMPILE_OBJECT". enable_language() is idempotent, so this
+    # is a no-op everywhere examples/ already enabled it and only actually
+    # does something in size_audit/'s own separate directory scope.
+    enable_language(ASM)
+    add_executable(lw_eh_size_audit_control_esp32
+        control_esp32_main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/../examples/esp32_minimal/startup.S
+    )
+    target_link_libraries(lw_eh_size_audit_control_esp32 PRIVATE lw_eh_size_flags)
+    target_link_options(lw_eh_size_audit_control_esp32 PRIVATE
+        -T${CMAKE_CURRENT_SOURCE_DIR}/../examples/esp32_minimal/esp32.ld -nostdlib
+    )
 else()
     message(STATUS
         "size_audit: real embedded with-lweh target skipped (enable "
