@@ -13,6 +13,7 @@ set(LWEH_TEST_CASES
     capacity_boundary
     reentrancy
     multi_event_isolation
+    intrusive_signal
 )
 
 foreach(case IN LISTS LWEH_TEST_CASES)
