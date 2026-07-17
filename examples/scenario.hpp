@@ -7,14 +7,19 @@
 // listener; sensor_reading_event: member-function listener;
 // battery_level_event: free-function listener; wifi_rssi_event:
 // free-function listener) and intrusive_signal<Event> (connection_event:
-// intrusive_node listener) -- reused verbatim by both the embedded ESP32
-// entry point (main.cpp) and the host-proxy size probe
+// intrusive_node listener) -- reused verbatim by every architecture's
+// embedded entry point (esp32_minimal/, riscv32_esp_minimal/,
+// arm_cortex_m_minimal/, avr_minimal/) and the host-proxy size probe
 // (size_audit/with_lweh_main.cpp), so the example and the size number can
 // never silently drift apart (Research/ARCHITECTURE.md: "one source of truth
-// for realistic usage"). A distinct third event type is used for the
-// intrusive listener, rather than adding a second storage policy to an
-// existing event type, so the two policies read as genuinely separate,
-// independently understandable examples.
+// for realistic usage"). Lives at examples/scenario.hpp, not nested under
+// any one architecture's directory, specifically because it's shared by all
+// of them -- moved here from examples/esp32_minimal/ in firing 20 when the
+// other three architectures' examples were brought up to date from their
+// original Phase-0 stub state (see Research/PROGRESS.md). A distinct third
+// event type is used for the intrusive listener, rather than adding a second
+// storage policy to an existing event type, so the two policies read as
+// genuinely separate, independently understandable examples.
 //
 // battery_level_event and wifi_rssi_event are a THIRD and FOURTH
 // signal<>-backed type (not more intrusive_signal<> ones) specifically to
