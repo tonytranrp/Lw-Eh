@@ -112,6 +112,12 @@ jobs:
             clang++ -Iinclude -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -fno-exceptions -fno-rtti -fsyntax-only "$f"
           done
           echo "Clean: all three otherwise-unbuildable examples are valid, portable C++17."
+      - name: Same for the one plain-C file among them (ARM's placeholder Reset_Handler)
+        run: |
+          set -e
+          echo "--- examples/arm_cortex_m_minimal/startup.c ---"
+          clang -std=c11 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -fsyntax-only examples/arm_cortex_m_minimal/startup.c
+          echo "Clean: startup.c is valid, portable C11 (no ARM-specific constructs -- it's a placeholder, see its own TODO comment)."
 
   # Host correctness suite (research.md §B9/§A9's actual behavioral
   # contracts, not size) under host-debug, host-asan (firing 21), and
