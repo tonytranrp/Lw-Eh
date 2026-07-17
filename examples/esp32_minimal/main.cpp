@@ -17,6 +17,25 @@ extern "C" void app_main() {
     lweh_example::run_scenario(2, 42, true, 50, -60, true);
     lweh_example::uart0_tx_string("LWEH OK\r\n");
 
+    // Exercise detach() on real hardware -- the one core API surface
+    // run_scenario() never touches (it only attaches and publishes), and so
+    // the one piece of Lw-Eh's logic with zero real-Xtensa-codegen evidence
+    // before this (Research/PROGRESS.md's codegen deep-verification sweep
+    // flagged this explicitly as an observation, not a defect: nothing about
+    // detach()'s implementation is architecture-specific the way the four
+    // real hardware bugs were, but it had genuinely never been compiled into
+    // any ESP32 binary). One call per storage policy, matching the two real
+    // detach() call shapes the library has: signal<Event,N>'s free-function
+    // detach<Fn>() (array compaction under the hood) and
+    // intrusive_signal<Event>'s detach-by-reference (linked-list unlink()).
+    // Both must return true -- each listener was attached moments ago by
+    // run_scenario() and neither has fired a self-detach, so this is the
+    // ordinary, non-reentrant detach path, not the documented
+    // dispatch-time-reentrancy caveats.
+    const bool signal_detach_ok = lweh_example::g_button_signal.detach<&lweh_example::on_button>();
+    const bool intrusive_detach_ok = lweh_example::g_connection_signal.detach(lweh_example::g_connection_logger);
+    lweh_example::uart0_tx_string((signal_detach_ok && intrusive_detach_ok) ? "LWEH DETACH OK\r\n" : "LWEH DETACH FAIL\r\n");
+
     // Never return. app_main() is entered via startup.S's `call0` (a
     // non-windowed call) into this windowed-ABI (entry/retw) function.
     // Real hardware confirmed (firing 45) every windowed call/return
