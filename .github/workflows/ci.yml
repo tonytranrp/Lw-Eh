@@ -1,0 +1,74 @@
+name: CI
+
+# Quoted "on" deliberately, not bare `on:` -- YAML 1.1's boolean-keyword
+# coercion (bare on/off/yes/no parse as booleans) makes an unquoted `on:` key
+# ambiguous under a strict YAML 1.1 parser (confirmed locally: PyYAML's
+# safe_load reads it as the Python boolean True, not the string "on").
+# GitHub's own Actions parser tolerates the bare form in practice -- countless
+# real workflows use it -- but quoting is unambiguous under any YAML parser
+# and costs nothing, so there's no reason to rely on that tolerance rather
+# than just sidestepping the ambiguity outright.
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Proves research.md §B1's hermeticity claim rather than just asserting it
+  # in a comment: Lw-Eh's own CMake files must never fetch or resolve an
+  # external dependency (no FetchContent, no ExternalProject_Add, no
+  # find_package/find_program/find_library). This is the exact grep gate
+  # research.md §B1 names as the concrete way to prove this, not just claim
+  # it -- "A cheap lint/CI grep gate... failing the build on any match
+  # (belt-and-suspenders against future contributions)." Pattern requires the
+  # keyword to be immediately followed by "(" (real invocation syntax), not
+  # a bare word match -- a naive word-boundary grep would false-positive on
+  # this repo's own root CMakeLists.txt, which explicitly documents these
+  # are never used in a plain-English comment containing all five words.
+  hermeticity-lint:
+    name: Hermeticity lint (no fetched/resolved dependencies)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grep for forbidden dependency-fetching/resolving CMake commands
+        run: |
+          set -e
+          PATTERN='(FetchContent_Declare|FetchContent_MakeAvailable|ExternalProject_Add|find_package|find_program|find_library)[[:space:]]*\('
+          if grep -RnE "$PATTERN" --include='CMakeLists.txt' --include='*.cmake' \
+              CMakeLists.txt cmake/ examples/ integrations/ size_audit/ tests/; then
+            echo "::error::Found a forbidden dependency-fetching/resolving CMake command (research.md §B1: Lw-Eh's own build must never fetch or resolve an external dependency)."
+            exit 1
+          fi
+          echo "Clean: no FetchContent/ExternalProject_Add/find_package/find_program/find_library invocations found."
+
+  # Host correctness suite (research.md §B9/§A9's actual behavioral
+  # contracts, not size) under both the plain preset and the ASan+UBSan
+  # preset added in firing 21 -- keeps both permanently exercised on every
+  # push/PR, not just when a firing happens to remember to run them locally.
+  # Deliberately does NOT attempt the Xtensa/RISC-V/ARM/AVR cross-compile
+  # presets here: those need real embedded cross-toolchains this repo has
+  # never fetched (and, per the zero-dependency rule this very lint job
+  # enforces, never will via Lw-Eh's own CMake) -- installing one inside CI
+  # is a distinct, larger decision, deliberately out of scope for this
+  # workflow (see Research/PROGRESS.md).
+  host-tests:
+    name: Host tests (${{ matrix.preset }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [host-debug, host-asan]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+      - name: Toolchain versions
+        run: cmake --version && ninja --version && clang++ --version
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --output-on-failure
