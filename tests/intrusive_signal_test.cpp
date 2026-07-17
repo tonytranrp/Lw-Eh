@@ -240,5 +240,68 @@ int main() {
         LWEH_EXPECT_EQ(r.count, 2);
     }
 
+    // 7. Detach the head node directly (outside dispatch): the new head must
+    // become the old head's immediate successor, and the remaining nodes
+    // must still dispatch correctly afterward. Every existing head-removal
+    // case above is entangled with self-detach-during-dispatch reentrancy
+    // (tests 3 and 6); this isolates the plain unlink() head_==&node branch
+    // on its own, called from an ordinary (non-reentrant) context.
+    {
+        recorder r;
+        basic_node a;
+        a.tag = 'A';
+        a.rec = &r;
+        basic_node b;
+        b.tag = 'B';
+        b.rec = &r;
+        basic_node c;
+        c.tag = 'C';
+        c.rec = &r;
+
+        lweh::intrusive_signal<dummy_event> s;
+        s.attach(a); // list becomes, head to tail: A
+        s.attach(b); // B -> A
+        s.attach(c); // C -> B -> A (c is head)
+
+        LWEH_EXPECT(s.detach(c)); // detach the head directly, outside dispatch
+
+        s.publish(dummy_event{1});
+        LWEH_EXPECT_EQ(r.count, 2);
+        LWEH_EXPECT_EQ(r.trace[0], 'B'); // new head fires first
+        LWEH_EXPECT_EQ(r.trace[1], 'A');
+        LWEH_EXPECT_EQ(c.hits, 0); // detached before publish; must not fire
+    }
+
+    // 8. Detach a genuine middle node directly (outside dispatch) from a
+    // 3-node list -- neither head nor tail. No existing test exercises this:
+    // test 2's non-head detach is the tail of a 2-node list, and test 4's
+    // during-dispatch detach targets the tail of a 3-node list. This pins
+    // down unlink()'s list-walk branch relinking around an interior node.
+    {
+        recorder r;
+        basic_node a;
+        a.tag = 'A';
+        a.rec = &r;
+        basic_node b;
+        b.tag = 'B';
+        b.rec = &r;
+        basic_node c;
+        c.tag = 'C';
+        c.rec = &r;
+
+        lweh::intrusive_signal<dummy_event> s;
+        s.attach(a); // A
+        s.attach(b); // B -> A
+        s.attach(c); // C -> B -> A (b is the middle node)
+
+        LWEH_EXPECT(s.detach(b)); // detach the middle node directly
+
+        s.publish(dummy_event{1});
+        LWEH_EXPECT_EQ(r.count, 2);
+        LWEH_EXPECT_EQ(r.trace[0], 'C'); // head unaffected
+        LWEH_EXPECT_EQ(r.trace[1], 'A'); // c now points directly to a
+        LWEH_EXPECT_EQ(b.hits, 0); // detached; must not fire
+    }
+
     return lweh_test::finish();
 }
