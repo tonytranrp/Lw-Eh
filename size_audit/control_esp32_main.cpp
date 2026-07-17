@@ -11,5 +11,17 @@
 // real embedded measurement specifically. control_main.cpp is unaffected
 // and remains correct as-is for the host-representative proxy pairing
 // (lw_eh_size_audit_with_lweh_host), which has no custom boot path either.
+//
+// Calls the identical uart.hpp boot-confirmation logging that
+// examples/esp32_minimal/main.cpp now does (Research/PROGRESS.md firing
+// 39) -- that logging's own code+string-literal cost must land on both
+// sides of the diff equally, or it would silently inflate size_report.py's
+// "incremental" number with debug-logging cost that isn't Lw-Eh's.
 
-extern "C" void app_main() {}
+#include "../examples/esp32_minimal/uart.hpp"
+
+extern "C" void app_main() {
+    lweh_example::uart0_init_baud_defensive();
+    lweh_example::uart0_tx_string("LWEH BOOT\r\n");
+    lweh_example::uart0_tx_string("LWEH OK\r\n");
+}

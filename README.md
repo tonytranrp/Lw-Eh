@@ -14,7 +14,7 @@ Most C++ event/ECS libraries are general-purpose enough to handle almost any use
 - **Zero external dependencies.** Nothing is ever fetched by the build — no `FetchContent`, no vcpkg/Conan, no Boost.
 - **Header-only.** No separate library to build or link against; `#include` it and go.
 
-Measured incremental footprint on a real ESP32 (Xtensa) build: **564 bytes** for six event types split across both storage policies below — see [Research/PROGRESS.md](Research/PROGRESS.md) for the current number and how it's measured (this number moves as the reference scenario gains event types, so treat it as a snapshot, not a promise; the jump from a prior 471-byte reading is the real cost of the example's startup code becoming genuinely bootable — `.bss` zeroing, `.data` copy-down — not per-event-type growth).
+Measured incremental footprint on a real ESP32 (Xtensa) build: **822 bytes** for six event types split across both storage policies below — see [Research/PROGRESS.md](Research/PROGRESS.md) for the current number and how it's measured (this number moves as the reference scenario gains event types, so treat it as a snapshot, not a promise; it has climbed twice recently — 471 → 564 → 822 — not from Lw-Eh's own code growing, but from fixing the *measurement* to isolate Lw-Eh's real cost from the platform's boot-up floor as that floor itself became a genuine from-scratch startup path instead of a placeholder).
 
 The reasoning behind every one of these choices — the exact compiler/linker flags, the delegate's binary layout, the reentrancy-safety analysis behind each storage policy, prior-art comparisons against EnTT/ETL/the Linux kernel — is written up in [Research/research.md](Research/research.md) and [Research/ARCHITECTURE.md](Research/ARCHITECTURE.md).
 
