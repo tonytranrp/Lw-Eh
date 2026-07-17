@@ -81,6 +81,38 @@ jobs:
           fi
           echo "Clean: all four locations agree on $CMAKE_VER."
 
+  # Xtensa/RISC-V/ARM/AVR cross-toolchains other than Xtensa are all absent
+  # here (Research/PROGRESS.md), so examples/riscv32_esp_minimal/,
+  # arm_cortex_m_minimal/, and avr_minimal/ have never been compiled by
+  # anything, ever -- unlike examples/esp32_minimal/ (a real toolchain + real
+  # hardware), these three currently have ZERO compile-time verification of
+  # any kind. Their .cpp files are plain, portable C++17 with no
+  # target-specific constructs at all (just #include "../scenario.hpp" plus a
+  # trivial app_main()/main() wrapper -- confirmed by reading them), so a host
+  # compiler can at least confirm they're valid, type-checked C++, closing the
+  # gap from "never verified at all" to "verified as portable C++, pending the
+  # real toolchain for full target-ABI correctness" (which this job doesn't
+  # and can't claim to replace). Catches, for instance, a future
+  # scenario.hpp/library-header change that silently breaks one of these
+  # three examples' source with nothing noticing until (if ever) that
+  # toolchain becomes available. -fsyntax-only: type-check without emitting
+  # code, since there's nothing meaningful to link these against on host.
+  unbuildable-examples-syntax-check:
+    name: Syntax-check RISC-V/ARM/AVR examples (host compiler, no real toolchain)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y clang
+      - name: Compile each example's source with the host compiler (syntax/type-check only)
+        run: |
+          set -e
+          for f in examples/riscv32_esp_minimal/main.cpp examples/arm_cortex_m_minimal/main.cpp examples/avr_minimal/main.cpp; do
+            echo "--- $f ---"
+            clang++ -Iinclude -std=c++17 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -fno-exceptions -fno-rtti -fsyntax-only "$f"
+          done
+          echo "Clean: all three otherwise-unbuildable examples are valid, portable C++17."
+
   # Host correctness suite (research.md §B9/§A9's actual behavioral
   # contracts, not size) under host-debug, host-asan (firing 21), and
   # host-gcc (firing 29) -- keeps all three permanently exercised on every

@@ -37,3 +37,10 @@
 # catch (found firing 31 while adding that directory).
 build/
 CMakeUserPresets.json
+
+# Editor-local state -- this project ships a real .clangd config (root
+# CMakeLists.txt's CMAKE_EXPORT_COMPILE_COMMANDS), so editor tooling is a
+# deliberate concern here, not incidental; a contributor's own VS Code/CLion
+# workspace state shouldn't end up tracked alongside it.
+.vscode/
+.idea/
