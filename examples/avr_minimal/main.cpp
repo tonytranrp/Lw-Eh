@@ -15,7 +15,7 @@
 #include "../scenario.hpp"
 
 int main() {
-    lweh_example::run_scenario(2, 42, true, 50, -60);
+    lweh_example::run_scenario(2, 42, true, 50, -60, true);
     for (;;) {
     }
 }

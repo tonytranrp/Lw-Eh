@@ -13,5 +13,5 @@
 #include "../scenario.hpp"
 
 extern "C" void app_main() {
-    lweh_example::run_scenario(2, 42, true, 50, -60);
+    lweh_example::run_scenario(2, 42, true, 50, -60, true);
 }

@@ -62,6 +62,23 @@ private:
 // engine across every Event type (research.md §A4) — virtual dispatch
 // erases Event "for free" via the vtable, without needing signal<>'s
 // deferred delegate-adapter-stub approach.
+//
+// Precision note (firing 34, real disassembly on 2 real Event-type
+// instantiations, not assumed): "shares one compiled engine" is fully true
+// for dispatch()/publish() -- detail::intrusive_core::dispatch() confirmed
+// as exactly one shared symbol, the intrusive-storage analog of firing 18's
+// finding that signal<>::publish() gets folded across event types by IPA-ICF.
+// It is NOT true the same way for attach()/detach(): link()/unlink() are
+// small enough that GCC inlines them fully at each call site rather than
+// emitting (and then folding) a standalone call, the same "always inlined,
+// never shared" behavior firing 18 found for signal<>::attach(). The net
+// marginal cost per additional intrusive_signal<>-backed Event type is still
+// meaningfully smaller than signal<>'s (measured: 96 bytes vs. the
+// established ~143-146 bytes/type, Research/PROGRESS.md) because dispatch()
+// is genuinely free and link()/unlink()'s inlined bodies are tiny (a few
+// instructions) compared to signal<>'s scan-for-empty-slot loop -- but it is
+// not literally zero marginal cost the way the sentence above could be
+// read to imply.
 template <typename Event>
 class intrusive_signal : private detail::intrusive_core {
 public:
