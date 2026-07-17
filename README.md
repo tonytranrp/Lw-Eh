@@ -97,6 +97,7 @@ Lw-Eh is header-only — pick whichever of these fits your project:
 
 - **Vendor directly**: copy (or git-submodule) the `include/lweh/` directory into your project and add it to your include path.
 - **CMake `add_subdirectory`**: `add_subdirectory(path/to/Lw-Eh)`, then `target_link_libraries(your_target PRIVATE LwEh::lw_eh)`.
+- **CMake `find_package`**: `cmake --install <build-dir> --prefix <prefix>` this repo, then `find_package(LwEh REQUIRED)` + `target_link_libraries(your_target PRIVATE LwEh::lw_eh)` against that prefix. [`packaging_check/`](packaging_check/) is a standalone, CI-verified fixture proving this path end-to-end — real install, real `find_package`, real dispatch through both storage policies.
 - **ESP-IDF component**: add [`integrations/esp-idf/`](integrations/esp-idf/) to your project's `EXTRA_COMPONENT_DIRS`.
 - **PlatformIO**: [`library.json`](library.json) is a standard PlatformIO library manifest.
 
@@ -113,6 +114,8 @@ ctest --preset host-debug
 This builds and runs the correctness test suite on your host machine — no embedded toolchain needed. `CMakePresets.json` also has presets for cross-compiling the examples to ESP32 (Xtensa and RISC-V), ARM Cortex-M, and AVR (see [`cmake/toolchains/`](cmake/toolchains/)), and a `size-host` preset that drives the size-measurement tooling in [`size_audit/`](size_audit/) described in [Research/research.md](Research/research.md) (§B9).
 
 A `host-asan` preset (`cmake --preset host-asan && cmake --build --preset host-asan && ctest --preset host-asan`) runs the same suite compiled with `-fsanitize=address,undefined` — the reentrancy/dispatch-safety contracts documented in [`signal.hpp`](include/lweh/signal.hpp) and [`intrusive_signal.hpp`](include/lweh/intrusive_signal.hpp) were originally validated this way, and this preset keeps that coverage standing rather than one-off. Sanitizers are host-only by design: they're never applied to the flags examples/ cross-compile with, since bare-metal embedded targets have no sanitizer runtime available.
+
+[`packaging_check/`](packaging_check/) separately verifies the `find_package(LwEh)` consumption path (see its own `CMakeLists.txt` for the exact commands) — a standalone project, deliberately not part of the main build, that installs the library to a scratch prefix and consumes it exactly as an external project would. Every CI run (`.github/workflows/ci.yml`) exercises `host-debug`, `host-asan`, `host-gcc` (real GNU GCC, not just Clang), the hermeticity lint, and this packaging check.
 
 ## License
 

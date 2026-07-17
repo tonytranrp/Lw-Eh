@@ -31,6 +31,9 @@
 *.out
 *.app
 
-# CMake build directories (CMakePresets.json binaryDir targets)
-/build/
+# CMake build directories (CMakePresets.json binaryDir targets) -- not
+# root-anchored: packaging_check/'s own documented usage builds into
+# packaging_check/build/, a nested path a root-anchored /build/ wouldn't
+# catch (found firing 31 while adding that directory).
+build/
 CMakeUserPresets.json

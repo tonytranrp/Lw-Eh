@@ -27,6 +27,11 @@ jobs:
   # a bare word match -- a naive word-boundary grep would false-positive on
   # this repo's own root CMakeLists.txt, which explicitly documents these
   # are never used in a plain-English comment containing all five words.
+  # Scope deliberately excludes packaging_check/ (added firing 31): that
+  # directory's find_package(LwEh) is a DOWNSTREAM CONSUMER resolving Lw-Eh
+  # itself as a dependency -- the exact legitimate use case §B1's packaging
+  # promise exists to support -- not Lw-Eh's own build resolving something
+  # for itself. Not an oversight; the two are conceptually opposite.
   hermeticity-lint:
     name: Hermeticity lint (no fetched/resolved dependencies)
     runs-on: ubuntu-latest
@@ -82,3 +87,35 @@ jobs:
         run: cmake --build --preset ${{ matrix.preset }}
       - name: Test
         run: ctest --preset ${{ matrix.preset }} --output-on-failure
+
+  # Proves research.md §B1's other documented consumption path -- plain
+  # install()/find_package(LwEh) -- actually works, not just tests/,
+  # examples/, and size_audit/'s add_subdirectory path (which never touches
+  # install()/EXPORT/configure_package_config_file()/write_basic_package_
+  # version_file() at all). Until firing 31, this whole packaging surface
+  # had shipped, been documented, and never once been exercised end-to-end
+  # by anything -- a regression here (a typo in the EXPORT name, a wrong
+  # INSTALL_DESTINATION, a missing FILE_SET) would have been invisible to
+  # every other check in this repo, since none of them build through this
+  # path. packaging_check/ is a standalone project deliberately NOT
+  # add_subdirectory'd from the root (find_package(LwEh) against a package
+  # that's still mid-configure is structurally circular) -- see its own
+  # CMakeLists.txt comment for the full reasoning and how to run this by
+  # hand.
+  packaging-check:
+    name: Install + find_package(LwEh) consumption
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build clang
+      - name: Configure the library (install-only, no tests/examples/size_audit)
+        run: cmake -S . -B build-install -G Ninja -DLWEH_BUILD_TESTS=OFF -DLWEH_BUILD_EXAMPLES=OFF -DLWEH_BUILD_SIZE_AUDIT=OFF -DCMAKE_CXX_COMPILER=clang++
+      - name: Install to a scratch prefix
+        run: cmake --install build-install --prefix ${{ runner.temp }}/lweh-prefix
+      - name: Configure the standalone consumer via find_package(LwEh)
+        run: cmake -S packaging_check -B build-consumer -G Ninja -DCMAKE_PREFIX_PATH=${{ runner.temp }}/lweh-prefix -DCMAKE_CXX_COMPILER=clang++
+      - name: Build the consumer
+        run: cmake --build build-consumer
+      - name: Run the consumer (confirms real dispatch correctness through this path, not just linking)
+        run: ./build-consumer/consumer
