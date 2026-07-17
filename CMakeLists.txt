@@ -25,6 +25,7 @@ include(cmake/LwEhAggressiveFlags.cmake)
 option(LWEH_BUILD_TESTS      "Build the host CTest correctness suite"          ${PROJECT_IS_TOP_LEVEL})
 option(LWEH_BUILD_EXAMPLES   "Build the cross-compiled embedded examples"      OFF)
 option(LWEH_BUILD_SIZE_AUDIT "Build the size-audit control/with-lweh binaries" OFF)
+option(LWEH_SANITIZE         "Build tests/ with -fsanitize=address,undefined (host-only; never applied to lw_eh_size_flags, which examples/ cross-compile with -- see tests/CMakeLists.txt)" OFF)
 
 if(LWEH_BUILD_TESTS)
     enable_testing()

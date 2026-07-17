@@ -75,6 +75,20 @@
         "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_C_COMPILER": "clang"
       }
+    },
+    {
+      "name": "host-asan",
+      "displayName": "Host (ASan + UBSan)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/host-asan",
+      "cacheVariables": {
+        "LWEH_BUILD_TESTS": "ON",
+        "LWEH_BUILD_EXAMPLES": "OFF",
+        "LWEH_BUILD_SIZE_AUDIT": "OFF",
+        "LWEH_SANITIZE": "ON",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_C_COMPILER": "clang"
+      }
     }
   ],
   "buildPresets": [
@@ -83,9 +97,11 @@
     { "name": "esp32-riscv", "configurePreset": "esp32-riscv" },
     { "name": "cortex-m", "configurePreset": "cortex-m" },
     { "name": "avr", "configurePreset": "avr" },
-    { "name": "size-host", "configurePreset": "size-host" }
+    { "name": "size-host", "configurePreset": "size-host" },
+    { "name": "host-asan", "configurePreset": "host-asan" }
   ],
   "testPresets": [
-    { "name": "host-debug", "configurePreset": "host-debug", "output": { "outputOnFailure": true } }
+    { "name": "host-debug", "configurePreset": "host-debug", "output": { "outputOnFailure": true } },
+    { "name": "host-asan", "configurePreset": "host-asan", "output": { "outputOnFailure": true } }
   ]
 }

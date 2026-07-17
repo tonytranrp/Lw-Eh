@@ -112,6 +112,8 @@ ctest --preset host-debug
 
 This builds and runs the correctness test suite on your host machine — no embedded toolchain needed. `CMakePresets.json` also has presets for cross-compiling the examples to ESP32 (Xtensa and RISC-V), ARM Cortex-M, and AVR (see [`cmake/toolchains/`](cmake/toolchains/)), and a `size-host` preset that drives the size-measurement tooling in [`size_audit/`](size_audit/) described in [Research/research.md](Research/research.md) (§B9).
 
+A `host-asan` preset (`cmake --preset host-asan && cmake --build --preset host-asan && ctest --preset host-asan`) runs the same suite compiled with `-fsanitize=address,undefined` — the reentrancy/dispatch-safety contracts documented in [`signal.hpp`](include/lweh/signal.hpp) and [`intrusive_signal.hpp`](include/lweh/intrusive_signal.hpp) were originally validated this way, and this preset keeps that coverage standing rather than one-off. Sanitizers are host-only by design: they're never applied to the flags examples/ cross-compile with, since bare-metal embedded targets have no sanitizer runtime available.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
