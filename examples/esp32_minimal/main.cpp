@@ -36,6 +36,24 @@ extern "C" void app_main() {
     const bool intrusive_detach_ok = lweh_example::g_connection_signal.detach(lweh_example::g_connection_logger);
     lweh_example::uart0_tx_string((signal_detach_ok && intrusive_detach_ok) ? "LWEH DETACH OK\r\n" : "LWEH DETACH FAIL\r\n");
 
+    // Exercise the capacity-boundary path on real hardware too: signal<Event,
+    // 4>::attach() must reject a 5th listener once all 4 slots are occupied,
+    // rather than silently overrunning the array. run_scenario() only ever
+    // attaches 1 listener per signal<> (well under capacity), so -- like
+    // detach() above -- this path has never been compiled into any ESP32
+    // binary before now, despite being thoroughly host-tested
+    // (tests/capacity_boundary_test.cpp). g_battery_signal already holds 1
+    // listener from run_scenario(); which function fills the remaining 3
+    // slots doesn't matter for a pure occupancy check, so on_battery_level is
+    // reused (signal<>, like intrusive_signal<>, has no double-attach guard
+    // -- see signal.hpp's attach() scanning purely for an empty slot). The
+    // 5th call must return false.
+    lweh_example::g_battery_signal.attach<&lweh_example::on_battery_level>();
+    lweh_example::g_battery_signal.attach<&lweh_example::on_battery_level>();
+    lweh_example::g_battery_signal.attach<&lweh_example::on_battery_level>();
+    const bool fifth_attach_rejected = !lweh_example::g_battery_signal.attach<&lweh_example::on_battery_level>();
+    lweh_example::uart0_tx_string(fifth_attach_rejected ? "LWEH CAPACITY OK\r\n" : "LWEH CAPACITY FAIL\r\n");
+
     // Never return. app_main() is entered via startup.S's `call0` (a
     // non-windowed call) into this windowed-ABI (entry/retw) function.
     // Real hardware confirmed (firing 45) every windowed call/return

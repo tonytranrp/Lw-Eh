@@ -32,6 +32,12 @@
 // regardless of which one is ever printed at runtime, so this side must
 // pay for both too, via a value this binary can observe without needing
 // any lweh code at all (a local volatile bool, not a detach() result).
+//
+// Same reasoning applies to main.cpp's capacity-boundary exercise (the
+// four attach() calls plus the "LWEH CAPACITY OK\r\n"/"LWEH CAPACITY
+// FAIL\r\n" ternary): the attach() calls themselves are real Lw-Eh logic
+// and stay out of this binary; the two new string-literal operands are
+// scaffolding cost mirrored the same way as above.
 
 #include "../examples/esp32_minimal/uart.hpp"
 #include "../examples/esp32_minimal/rtc_wdt.hpp"
@@ -44,4 +50,7 @@ extern "C" void app_main() {
 
     volatile bool detach_diagnostic_probe = true;
     lweh_example::uart0_tx_string(detach_diagnostic_probe ? "LWEH DETACH OK\r\n" : "LWEH DETACH FAIL\r\n");
+
+    volatile bool capacity_diagnostic_probe = true;
+    lweh_example::uart0_tx_string(capacity_diagnostic_probe ? "LWEH CAPACITY OK\r\n" : "LWEH CAPACITY FAIL\r\n");
 }
