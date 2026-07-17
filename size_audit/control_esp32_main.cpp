@@ -12,15 +12,17 @@
 // and remains correct as-is for the host-representative proxy pairing
 // (lw_eh_size_audit_with_lweh_host), which has no custom boot path either.
 //
-// Calls the identical uart.hpp boot-confirmation logging that
-// examples/esp32_minimal/main.cpp now does (Research/PROGRESS.md firing
-// 39) -- that logging's own code+string-literal cost must land on both
-// sides of the diff equally, or it would silently inflate size_report.py's
-// "incremental" number with debug-logging cost that isn't Lw-Eh's.
+// Calls the identical uart.hpp boot-confirmation logging and rtc_wdt.hpp
+// watchdog-disable that examples/esp32_minimal/main.cpp now does
+// (Research/PROGRESS.md firings 39 and 46) -- that code's cost must land
+// on both sides of the diff equally, or it would silently inflate
+// size_report.py's "incremental" number with cost that isn't Lw-Eh's.
 
 #include "../examples/esp32_minimal/uart.hpp"
+#include "../examples/esp32_minimal/rtc_wdt.hpp"
 
 extern "C" void app_main() {
+    lweh_example::rtc_wdt_disable();
     lweh_example::uart0_init_baud_defensive();
     lweh_example::uart0_tx_string("LWEH BOOT\r\n");
     lweh_example::uart0_tx_string("LWEH OK\r\n");
