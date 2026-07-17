@@ -27,6 +27,18 @@
       }
     },
     {
+      "name": "esp32-xtensa-size",
+      "displayName": "ESP32 (Xtensa) with size-audit control target",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/esp32-xtensa-size",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/xtensa-esp32.cmake",
+      "cacheVariables": {
+        "LWEH_BUILD_TESTS": "OFF",
+        "LWEH_BUILD_EXAMPLES": "ON",
+        "LWEH_BUILD_SIZE_AUDIT": "ON"
+      }
+    },
+    {
       "name": "esp32-riscv",
       "displayName": "ESP32 (RISC-V)",
       "generator": "Ninja",
@@ -103,6 +115,7 @@
   "buildPresets": [
     { "name": "host-debug", "configurePreset": "host-debug" },
     { "name": "esp32-xtensa", "configurePreset": "esp32-xtensa" },
+    { "name": "esp32-xtensa-size", "configurePreset": "esp32-xtensa-size" },
     { "name": "esp32-riscv", "configurePreset": "esp32-riscv" },
     { "name": "cortex-m", "configurePreset": "cortex-m" },
     { "name": "avr", "configurePreset": "avr" },

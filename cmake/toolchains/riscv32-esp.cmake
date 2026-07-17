@@ -17,5 +17,15 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # rv32imc: the C (compressed instructions) extension is the RISC-V analog to
 # ARM Thumb and is essential for code density (research.md §B4).
-set(CMAKE_CXX_FLAGS_INIT "-march=rv32imc -mabi=ilp32")
-set(CMAKE_C_FLAGS_INIT   "-march=rv32imc -mabi=ilp32")
+#
+# -ffreestanding: research.md §B4 frames -fno-builtin (which this implies) as
+# generally not worth it, "unless writing a from-scratch runtime with
+# non-standard libc semantics" — exactly this target's situation:
+# examples/riscv32_esp_minimal/ links -nostdlib with its own from-scratch
+# startup.S/riscv32.ld and no libc at all, so leaving this off would let the
+# compiler assume hosted memcpy/memset/etc. semantics and potentially emit a
+# call to a symbol -nostdlib linking will never provide. Same reasoning as
+# xtensa-esp32.cmake's identical addition, applied here since this target is
+# in the exact same situation (its own -nostdlib example, no shared libc).
+set(CMAKE_CXX_FLAGS_INIT "-march=rv32imc -mabi=ilp32 -ffreestanding")
+set(CMAKE_C_FLAGS_INIT   "-march=rv32imc -mabi=ilp32 -ffreestanding")
