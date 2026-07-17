@@ -7,6 +7,7 @@
 # fills these in during Phase 1 as the corresponding library feature lands).
 
 set(LWEH_TEST_CASES
+    delegate
     attach_detach
     dispatch_order
     capacity_boundary

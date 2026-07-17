@@ -1,4 +1,11 @@
 CompileFlags:
+  CompilationDatabase: build/host-debug
+
+---
+# Fallback for files clangd can't match to a compile_commands.json entry yet
+# (e.g. before the first configure). Real per-target flags above take
+# precedence once build/host-debug/compile_commands.json exists.
+CompileFlags:
   Add: [-Iinclude, -Wall, -Wextra]
 
 ---

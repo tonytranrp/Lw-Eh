@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.23) # target_sources(... FILE_SET HEADERS)
 project(LwEh VERSION 0.1.0 LANGUAGES CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # lets clangd use real per-target flags/includes (see .clangd)
+
 add_library(lw_eh INTERFACE)
 add_library(LwEh::lw_eh ALIAS lw_eh)
 

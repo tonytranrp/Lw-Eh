@@ -2,23 +2,86 @@
 #ifndef LWEH_DELEGATE_HPP_INCLUDED
 #define LWEH_DELEGATE_HPP_INCLUDED
 
+#include <type_traits>
+
 namespace lweh {
 
-// Non-owning, fixed 2-pointer callback type (research.md Part A §A1):
-// a void* context plus a templated static stub generated at the bind call
-// site (Ryazanov "impossibly fast" delegate pattern). No std::function, no
-// heap, no vtable, no throw path.
+// Non-owning, fixed 2-pointer callback (research.md Part A §A1): a void*
+// object pointer plus a function pointer to a compiler-generated stub
+// trampoline, selected via a C++17 `auto` non-type template parameter. The
+// bound function/member-function pointer is never stored or reinterpret_cast
+// — it only ever exists as a compile-time template argument baked into which
+// stub instantiation gets its address taken (Ryazanov "impossibly fast"
+// delegate pattern; deliberately not Clugston's variant, which relies on
+// unspecified pointer-to-member-function representation).
 //
-// TODO(Phase 1): bind<Fn>() for free functions, bind<MemFn>(T*) for member
-// functions, operator()(Args...) to invoke.
+// Default-constructs into an unbound state (stub_ == nullptr) so it can live
+// in a plain array as signal<Event,N>'s slot storage — unlike a strict
+// function_ref, which has no empty state. Calling an unbound delegate is
+// undefined behavior, exactly like calling through a null function pointer;
+// check operator bool() first if that's possible at a given call site.
 template <typename Sig>
 class delegate;
 
 template <typename Ret, typename... Args>
 class delegate<Ret(Args...)> {
+    using stub_t = Ret (*)(void*, Args...);
+
+    void* obj_ = nullptr;
+    stub_t stub_ = nullptr;
+
+    template <auto Fn>
+    static Ret free_function_stub(void*, Args... args) {
+        static_assert(!std::is_member_pointer_v<decltype(Fn)>,
+                      "bind<Fn>() is for free functions only; use bind<MemFn>(instance) for member functions.");
+        // Direct call syntax deliberately, not std::invoke: std::invoke would
+        // treat a mistakenly-passed member-function pointer as an "unbound
+        // member" call consuming Args...[0] as the implicit object instead of
+        // failing to compile — a silent-wrong-behavior footgun this design
+        // avoids on purpose (Lw-Eh has no "unbound member" binding mode).
+        return Fn(args...);
+    }
+
+    template <auto MemFn, typename T>
+    static Ret member_function_stub(void* p, Args... args) {
+        // T is deduced from the caller's instance pointer, not forced to
+        // MemFn's declaring class, so binding a method inherited from a base
+        // of T works correctly with no special-casing.
+        return (static_cast<T*>(p)->*MemFn)(args...);
+    }
+
 public:
-    // TODO(Phase 1): implement.
+    delegate() = default;
+
+    // Bind a free function: delegate<Ret(Args...)>::bind<&some_function>().
+    template <auto Fn>
+    void bind() {
+        obj_ = nullptr;
+        stub_ = &free_function_stub<Fn>;
+    }
+
+    // Bind a member function on a specific instance:
+    // delegate<Ret(Args...)>::bind<&Class::method>(&instance).
+    template <auto MemFn, typename T>
+    void bind(T* instance) {
+        obj_ = instance;
+        stub_ = &member_function_stub<MemFn, T>;
+    }
+
+    Ret operator()(Args... args) const {
+        return stub_(obj_, args...);
+    }
+
+    explicit operator bool() const {
+        return stub_ != nullptr;
+    }
 };
+
+// Permanent, zero-cost regression guard: if a future change accidentally
+// grows delegate past 2 pointers, every build fails here immediately rather
+// than the regression being caught later by a size-audit diff.
+static_assert(sizeof(delegate<void()>) == sizeof(void*) * 2,
+              "lweh::delegate must stay exactly 2 pointers (research.md Part A §A1).");
 
 } // namespace lweh
 
